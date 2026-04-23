@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery — Shepstone Spa</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="shepstonelogo.png">
+    <script src="script.js" defer></script>
+    <style>
+        /* ── GALLERY PAGE ────────────────────────────────────────── */
+
+        .gallery-hero {
+            padding: 80px 40px 50px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .gallery-hero-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--terracotta);
+        }
+
+        .gallery-hero-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(52px, 8vw, 110px);
+            font-weight: 300;
+            color: var(--terracotta);
+            letter-spacing: 6px;
+            line-height: 1;
+        }
+
+        .gallery-hero-sub {
+            font-family: 'Josefin Sans', sans-serif;
+            font-size: 13px;
+            letter-spacing: 3px;
+            color: var(--text-mid);
+            max-width: 420px;
+            line-height: 1.9;
+        }
+
+        /* ── KINETIC GRID ──────────────────────────────────────── */
+
+        .gallery-stage {
+            position: relative;
+            width: 100%;
+            height: 88vh;
+            overflow: hidden;
+        }
+
+        /* top & bottom fade masks */
+        .gallery-stage::before,
+        .gallery-stage::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 180px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .gallery-stage::before {
+            top: 0;
+            background: linear-gradient(to bottom, var(--cream) 0%, transparent 100%);
+        }
+        .gallery-stage::after {
+            bottom: 0;
+            background: linear-gradient(to top, var(--cream) 0%, transparent 100%);
+        }
+
+        .gallery-grid {
+            display: flex;
+            gap: 12px;
+            height: 100%;
+            padding: 0 12px;
+        }
+
+        .gallery-col {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* pause on hover over whole stage */
+        .gallery-stage:hover .gallery-track {
+            animation-play-state: paused;
+        }
+
+        .gallery-track {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            will-change: transform;
+        }
+
+        /* up: 0 → -50% */
+        .gallery-col--up .gallery-track {
+            animation: colScrollUp linear infinite;
+        }
+
+        /* down: -50% → 0 */
+        .gallery-col--down .gallery-track {
+            animation: colScrollDown linear infinite;
+        }
+
+        @keyframes colScrollUp {
+            from { transform: translateY(0); }
+            to   { transform: translateY(-50%); }
+        }
+
+        @keyframes colScrollDown {
+            from { transform: translateY(-50%); }
+            to   { transform: translateY(0); }
+        }
+
+        /* individual durations per column */
+        .gallery-col:nth-child(1) .gallery-track { animation-duration: 42s; }
+        .gallery-col:nth-child(2) .gallery-track { animation-duration: 34s; }
+        .gallery-col:nth-child(3) .gallery-track { animation-duration: 54s; }
+        .gallery-col:nth-child(4) .gallery-track { animation-duration: 38s; }
+        .gallery-col:nth-child(5) .gallery-track { animation-duration: 28s; }
+        .gallery-col:nth-child(6) .gallery-track { animation-duration: 46s; }
+
+        .gallery-item {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3 / 4;
+            overflow: hidden;
+            border-radius: 18px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        /* alternate some items to landscape for visual rhythm */
+        .gallery-item--wide {
+            aspect-ratio: 4 / 3;
+        }
+        .gallery-item--square {
+            aspect-ratio: 1 / 1;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        filter 0.4s ease;
+        }
+
+        .gallery-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                160deg,
+                rgba(188, 139, 116, 0) 0%,
+                rgba(188, 139, 116, 0.35) 100%
+            );
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: 18px;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.07);
+        }
+
+        .gallery-item:hover::after {
+            opacity: 1;
+        }
+
+        /* ── LIGHTBOX ──────────────────────────────────────────── */
+
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: rgba(44, 36, 32, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .lightbox.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lightbox-inner {
+            position: relative;
+            max-width: min(90vw, 700px);
+            max-height: 90vh;
+        }
+
+        .lightbox-inner img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 20px;
+            box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+            transform: scale(0.92);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .lightbox.open .lightbox-inner img {
+            transform: scale(1);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -44px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            font-family: 'Josefin Sans', sans-serif;
+            line-height: 1;
+        }
+
+        .lightbox-close:hover { opacity: 1; }
+
+        /* ── GALLERY QUOTE STRIP ───────────────────────────────── */
+
+        .gallery-quote {
+            padding: 80px 40px;
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .gallery-quote-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 13px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--terracotta);
+        }
+
+        .gallery-quote-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(22px, 3vw, 32px);
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text-dark);
+            line-height: 1.7;
+        }
+
+        /* ── MOBILE ────────────────────────────────────────────── */
+
+        @media (max-width: 768px) {
+            .gallery-hero {
+                padding: 50px 20px 36px;
+            }
+
+            .gallery-stage {
+                height: 80vh;
+            }
+
+            .gallery-stage::before,
+            .gallery-stage::after {
+                height: 100px;
+            }
+
+            .gallery-grid {
+                gap: 8px;
+                padding: 0 8px;
+            }
+
+            /* show only 3 columns on mobile */
+            .gallery-col:nth-child(4),
+            .gallery-col:nth-child(5),
+            .gallery-col:nth-child(6) {
+                display: none;
+            }
+
+            .gallery-item {
+                border-radius: 12px;
+            }
+
+            .gallery-quote {
+                padding: 50px 20px;
+            }
+        }
+    </style>
+</head>
+<body id="scroll-to-top">
+
+    <div class="header-banner">
+        <div class="banner-flowers" aria-hidden="true" id="banner-flowers"></div>
+        <p>Pause & Petals, Mother's Day Special</p>
+    </div>
+
+    <header>
+        <div class="header-container">
+            <div class="header-container-left"></div>
+            <a href="index.html" style="text-decoration: none;">
+                <div class="header-container-mid">
+                    <h1>Shepstone Spa</h1>
+                    <div class="pause-logo">
+                        <span>·</span>
+                        <p>pause</p>
+                        <span>·</span>
+                    </div>
+                </div>
+            </a>
+            <div class="header-container-right">
+                <button class="hamburger" id="hamburger" aria-label="Open menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav-menu" id="nav-menu">
+        <ul>
+            <li class="has-dropdown">
+                <a href="#" class="dropdown-toggle" id="treatments-toggle">Treatments</a>
+                <ul class="dropdown-menu" id="treatments-dropdown">
+                    <li><a href="pamper&polish.html">Pamper & Polish</a></li>
+                    <li><a href="skin-edit.html">Skin Edit</a></li>
+                    <li><a href="body-collection.html">Body Collection</a></li>
+                    <li><a href="bare-beauty.html">Bare Beauty</a></li>
+                    <li><a href="finishing-touches.html">Finishing Touches</a></li>
+                    <li><a href="golden-glow.html">Golden Glow</a></li>
+                    <li><a href="the-experience.html">The Experience</a></li>
+                </ul>
+            </li>
+            <li><a href="pyjama-lounge.html">Pyjama Lounge</a></li>
+            <li><a href="gallery.html">Gallery</a></li>
+            <li><a href="reach-out.html">Reach Out</a></li>
+        </ul>
+    </nav>
+
+    <main>
+
+        <!-- ── HERO ──────────────────────────────────────────────── -->
+        <div class="gallery-hero">
+            <p class="gallery-hero-label">a moment captured</p>
+            <h1 class="gallery-hero-title">gallery</h1>
+            <hr class="divider" style="transform:scaleX(1); width:60px;">
+            <p class="gallery-hero-sub">Every image tells a story of calm, beauty, and belonging. Welcome to the world of Shepstone Spa.</p>
+        </div>
+
+        <!-- ── KINETIC COLLAGE ────────────────────────────────────── -->
+        <div class="gallery-stage" id="gallery-stage">
+            <div class="gallery-grid">
+
+                <!-- COL 1 — UP -->
+                <div class="gallery-col gallery-col--up">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479675.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5240716.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663368.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/Beauty Aesthetic 051.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187500.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-gabby-k-6621339.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-cottonbro-3737562.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-alesiakozik-7795398.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ekaterina-bolovtsova-6766261.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-yaroslav-shuraev-6793168.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 151.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anna-khomutova-3562984-5781229.jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B (duplicate for seamless) -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479675.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5240716.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663368.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/Beauty Aesthetic 051.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187500.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-gabby-k-6621339.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-cottonbro-3737562.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-alesiakozik-7795398.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ekaterina-bolovtsova-6766261.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-yaroslav-shuraev-6793168.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 151.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anna-khomutova-3562984-5781229.jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+                <!-- COL 2 — DOWN -->
+                <div class="gallery-col gallery-col--down">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479887.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/22-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-darina-belonogova-7886282.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-rdne-6724448.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-olia-danilevich-9336028.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187574.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 131.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-mikhail-nilov-6932437.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308666.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ekaterina-bolovtsova-6976447.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-mathilde-13347109.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308670.jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479887.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/22-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-darina-belonogova-7886282.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-rdne-6724448.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-olia-danilevich-9336028.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187574.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 131.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-mikhail-nilov-6932437.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308666.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ekaterina-bolovtsova-6976447.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-mathilde-13347109.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308670.jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+                <!-- COL 3 — UP -->
+                <div class="gallery-col gallery-col--up">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-yankrukov-7020266.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-croft-alexander-747385-1624226.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ron-lach-9165663.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 081.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-midtrack-14996840.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anna-nekrashevich-8058740.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-gabby-k-6621464.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-adenir-28588422.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308676.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-greta-hoffman-9475720.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-olia-danilevich-9335966.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479968.jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-yankrukov-7020266.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-croft-alexander-747385-1624226.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ron-lach-9165663.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 081.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-midtrack-14996840.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anna-nekrashevich-8058740.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-gabby-k-6621464.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-adenir-28588422.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-5308676.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-greta-hoffman-9475720.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-olia-danilevich-9335966.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-angela-roma-7479968.jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+                <!-- COL 4 — DOWN -->
+                <div class="gallery-col gallery-col--down">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-nuta-sorokina-8514313.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5202458.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-karolina-grabowska-7588357.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187421.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-alesiakozik-7796158.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 065.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-jonathanborba-19641826.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-alesiakozik-7796377.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 060.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-darina-belonogova-7886228.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/Beauty Aesthetic 128.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-orlovamaria-4946400.jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-nuta-sorokina-8514313.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5202458.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-karolina-grabowska-7588357.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-daria-liudnaya-8187421.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-alesiakozik-7796158.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 065.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-jonathanborba-19641826.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-alesiakozik-7796377.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/Beauty Aesthetic 060.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-darina-belonogova-7886228.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/Beauty Aesthetic 128.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-orlovamaria-4946400.jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+                <!-- COL 5 — UP -->
+                <div class="gallery-col gallery-col--up">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-enginakyurt-1458248.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-midtrack-14996838.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-karolina-grabowska-6629534.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ivan-samkov-5659019.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-karolina-grabowska-7321317.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/28-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663371.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-alesiakozik-7796500.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-n-voitkevich-8558244.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-alesiakozik-7795829.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-anntarazevich-5308633.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663374.jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-enginakyurt-1458248.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-midtrack-14996838.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-karolina-grabowska-6629534.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ivan-samkov-5659019.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-karolina-grabowska-7321317.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/28-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663371.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-alesiakozik-7796500.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-n-voitkevich-8558244.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-alesiakozik-7795829.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-anntarazevich-5308633.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-arina-krasnikova-6663374.jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+                <!-- COL 6 — DOWN -->
+                <div class="gallery-col gallery-col--down">
+                    <div class="gallery-track">
+                        <!-- set A -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ivan-samkov-5659022.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5240785.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-n-voitkevich-5128234.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-olga-volkovitskaia-131638009-17321618.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-tara-winstead-6682988.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/54-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ayobami-adepoju-61080370-34299108.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-cottonbro-6635922.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/50-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-6560282.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/_DSF6115.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-greta-hoffman-9475408 (1).jpg" alt="spa moment" loading="lazy"></div>
+                        <!-- set B -->
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ivan-samkov-5659022.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-karolina-grabowska-5240785.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-n-voitkevich-5128234.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-olga-volkovitskaia-131638009-17321618.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/pexels-tara-winstead-6682988.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/54-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-ayobami-adepoju-61080370-34299108.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--wide"><img src="Pexel Images_/pexels-cottonbro-6635922.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/50-low_res-width-3000px.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-anntarazevich-6560282.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item gallery-item--square"><img src="Pexel Images_/_DSF6115.jpg" alt="spa moment" loading="lazy"></div>
+                        <div class="gallery-item"><img src="Pexel Images_/pexels-greta-hoffman-9475408 (1).jpg" alt="spa moment" loading="lazy"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="gallery-quote">
+            <p class="gallery-quote-label">the feeling</p>
+            <hr class="divider" style="transform:scaleX(1);">
+            <p class="gallery-quote-text">"Every treatment, every moment, crafted to leave you luminous, calm, and beautifully renewed."</p>
+            <a href="reach-out.html"><button class="btn" style="margin-top:8px;">book your visit</button></a>
+        </div>
+
+    </main>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+        <div class="lightbox-inner">
+            <button class="lightbox-close" id="lightbox-close" aria-label="Close">✕</button>
+            <img id="lightbox-img" src="" alt="gallery image">
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-info-box">
+                <div class="footer-info-box-left">
+                    <p>location</p>
+                    <p>16 Hope Road, Mountain View</p>
+                    <p>Johannesburg 2192</p>
+                </div>
+                <div class="footer-info-box-mid">
+                    <p>bookings</p>
+                    <p>011 728 2050</p>
+                    <p>info@shepstonespa.co.za</p>
+                    <p>whatsapp: 079 176 3514</p>
+                    <p class="footer-heading">private events</p>
+                    <p>babs@shepstonegardens.co.za</p>
+                </div>
+                <div class="footer-info-box-right">
+                    <p>opening hours</p>
+                    <p>Monday: closed</p>
+                    <p>Tuesday: 9am to 5pm</p>
+                    <p>Wednesday: 9am to 5pm</p>
+                    <p>Thursday: 9am to 5pm</p>
+                    <p>Friday: 9am to 6pm</p>
+                    <p>Saturday: 9 to 5pm</p>
+                    <p>Sunday: appointment only</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Lightbox
+        const lightbox  = document.getElementById('lightbox');
+        const lbImg     = document.getElementById('lightbox-img');
+        const lbClose   = document.getElementById('lightbox-close');
+
+        document.querySelectorAll('.gallery-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const src = item.querySelector('img').src;
+                lbImg.src = src;
+                lightbox.classList.add('open');
+            });
+        });
+
+        lbClose.addEventListener('click', () => lightbox.classList.remove('open'));
+        lightbox.addEventListener('click', e => {
+            if (e.target === lightbox) lightbox.classList.remove('open');
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') lightbox.classList.remove('open');
+        });
+    </script>
+
+</body>
+</html>
